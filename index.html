@@ -372,17 +372,17 @@
 <script type="text/javascript">
   window.onload = function () {
     var value = {
-      hour2angle: function (d,ts) {
+      hour2angle: function (d) {
         var scale = d3.scale.linear()
                       .domain([0,719])
                       .range([0,359]);
-        return scale(((d.getUTCHours() + ts) * 60) + d.getUTCMinutes());
+        return scale(d);
       },
       minute2angle: function (d) {
         var scale = d3.scale.linear()
                       .domain([0,60])
                       .range([1,359]);
-        return scale(d.getUTCMinutes());
+        return scale(d);
       }
     };
 
@@ -390,10 +390,12 @@
         clock1 = layer1.append("g")
                        .attr("transform","scale(2)"),
         pointer1 = layer1.append("g")
-                         .attr("transform","scale(2)"),
-        d = new Date(),
-        interval=setInterval(function(){refreshTime(-3)},500);
+                         .attr("transform","scale(2)");
 
+        d3.timer(function () {
+          refreshTime(-3);
+          return false;
+        },500);
 
     clock1.callTemplate(Mustache.render, "#clock");
     pointer1.callTemplate(Mustache.render, "#pointers", function () {
@@ -402,14 +404,31 @@
 
     var pointerHour = pointer1.select("#hour"),
         pointerMinute = pointer1.select("#minute"),
+        interpolateTime = function () {
+          return;
+        },
         refreshTime = function (ts) {
           ts = ts || 0;
-          var d = new Date();
-          pointerHour.attr("transform","rotate(" + value.hour2angle(d,ts) + " 48 49)");
-          pointerMinute.attr("transform","rotate(" + value.minute2angle(d,ts) + " 48 49)");
+
+          pointerMinute.datum(function(){
+              var date = new Date();
+              return {hour: date.getUTCHours(), minute: date.getUTCMinutes()};
+          });
+
+          pointerHour.datum(function(){
+              return pointerMinute.datum();
+          });
+
+          pointerHour.attr("transform", function (d) {
+            return "rotate(" + value.hour2angle((d.hour + ts) * 60 + d.minute) + " 48 49)"
+          });
+
+          pointerMinute.attr("transform", function (d) {
+            return "rotate(" + value.minute2angle(d.minute) + " 48 49)"
+          });
+
         };
-
-
+        
   };
 
 </script>
